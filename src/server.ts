@@ -4,14 +4,16 @@ import winston from "winston";
 import http from "http";
 
 import DiscordLinkBot from "./bot";
+import Connection from "./network";
 
+// Main Server class which listens for data from bridged services and pushes data to them
 export default class DiscordLinkServer {
     config;
     logger: winston.Logger;
 
+    bot: DiscordLinkBot;
     private httpServer: http.Server;
     private server: websocket.server;
-    private bot: DiscordLinkBot;
 
     constructor(config, logger: winston.Logger) {
         this.config = config;
@@ -32,19 +34,29 @@ export default class DiscordLinkServer {
 
     onWebsocketRequest(request: websocket.request) {
         if(request.origin == null || request.origin == "*") {
-            let connection = request.accept("discord-bridge-protocol", request.origin);
-            this.logger.debug("Accepted WebSocket connection from: " + connection.remoteAddress);
-            //TODO : create connection instance and such
-        } else request.reject(); // Origin isn't null or *, client is a web browser which we have no business with
-    }
+            let wsconnection = request.accept("discord-bridge-protocol", request.origin);
+            this.logger.debug("Accepted WebSocket connection from: " + wsconnection.remoteAddress);
 
-    onPing(req, res) {
-        // TODO: Process pings
+            new Connection(this, wsconnection);
+        } else request.reject(); // Origin isn't null or *, client is a web browser which we have no business with
     }
 
     run() {
         this.httpServer.listen(this.config.server.port, () => {
             this.logger.info("Listening on port " + this.config.server.port);
         });
+    }
+}
+
+// Represents a connected Service, which handles bridging between the service itself and discord.
+export class Service {
+    name: string;
+
+    private server: DiscordLinkServer;
+    private connection: Connection;
+
+    constructor(server: DiscordLinkServer, connection: Connection) {
+        this.server = server;
+        this.connection = connection;
     }
 }

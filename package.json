@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "dependencies": {
     "discord.js": "^11.5.1",
+    "protobufjs": "^6.8.8",
     "websocket": "^1.0.29",
     "winston": "^3.2.1",
     "yamljs": "^0.3.0"

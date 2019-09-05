@@ -1,0 +1,34 @@
+syntax = "proto3";
+package discordlink.protocol;
+
+// First packet sent to the server by the client upon establishing a websocket connection.
+// The client must identify itself and then the server will check to see if it is registered.
+message ClientAuthenticationRequest {
+    // Timestamp (Unix Time)
+    fixed64 timestamp = 1;
+    // A 64 bit unsigned integer which is the service's ID
+    uint64 serviceID = 2;
+    // The service's JWT token as found in discordlink.yml
+    string serviceToken = 3;
+}
+
+// Sent in response to ClientAuthenticationRequest if the service was verified to be registered.
+// The server and client will then enter normal communication.
+message ClientAuthenticationAccepted {
+
+}
+
+// Sent in response to ClientAuthenticationRequest if the service was not verified.
+// The server will then close the connection.
+message ClientAuthenticationDenied {
+    enum Reason {
+        OTHER = 0;
+        NOT_REGISTERED = 1;
+        RATELIMITED = 2;
+    }
+
+    // Reason for denial
+    Reason reason = 1;
+    // Additional message about the denial
+    string additionalMessage = 2;
+}
