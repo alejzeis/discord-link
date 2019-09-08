@@ -15,15 +15,15 @@ export default class DiscordLinkServer {
     private httpServer: http.Server;
     private server: websocket.server;
 
-    constructor(config, logger: winston.Logger) {
+    constructor(config, logger: winston.Logger, serverOnly:boolean = false) {
         this.config = config;
         this.logger = logger;
 
         this.httpServer = http.createServer(this.httpServerCallback);
         this.server = new websocket.server({ httpServer: this.httpServer, autoAcceptConnections: false});
-        this.server.on('request', this.onWebsocketRequest);
+        this.server.on('request', this.onWebsocketRequest.bind(this));
 
-        this.bot = new DiscordLinkBot(this);
+        if(!serverOnly) this.bot = new DiscordLinkBot(this);
     }
 
     httpServerCallback(request, response) {
@@ -34,7 +34,7 @@ export default class DiscordLinkServer {
 
     onWebsocketRequest(request: websocket.request) {
         if(request.origin == null || request.origin == "*") {
-            let wsconnection = request.accept("discord-bridge-protocol", request.origin);
+            let wsconnection = request.accept("discord-link-protocol", request.origin);
             this.logger.debug("Accepted WebSocket connection from: " + wsconnection.remoteAddress);
 
             new Connection(this, wsconnection);
@@ -45,6 +45,12 @@ export default class DiscordLinkServer {
         this.httpServer.listen(this.config.server.port, () => {
             this.logger.info("Listening on port " + this.config.server.port);
         });
+    }
+
+    stop() {
+        this.logger.info("Shutting down server.");
+        this.server.shutDown();
+        this.httpServer.close();
     }
 }
 

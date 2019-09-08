@@ -1,5 +1,5 @@
 syntax = "proto3";
-package discordlink.protocol;
+package discordlink.protocol.auth;
 
 // First packet sent to the server by the client upon establishing a websocket connection.
 // The client must identify itself and then the server will check to see if it is registered.
