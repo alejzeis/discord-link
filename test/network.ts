@@ -1,15 +1,15 @@
 import chai from "chai";
 import winston from "winston";
 import websocket from "websocket";
-import protobuf from "protobufjs";
 
-import Connection from "../src/network";
 import DiscordLinkServer from "../src/server";
+import * as network from "../src/network";
 import * as dprotocol from "../src/protocol";
 
 let assert = chai.assert;
 
 const testServerConfig = {
+    protocolRoot: "protocol",
     server: {
         port: 9999,
         services: {
@@ -38,16 +38,11 @@ const dummyLogger = winston.createLogger({
 });
 
 describe('Authentication', () => {
-    var ClientAuthenticationRequest;
-    var ClientAuthenticationAccepted;
-    var ClientAuthenticationDenied;
+    var packets: network.Packets;
 
-    before(() => {
-        protobuf.load("protocol/discordlink/protocol/auth.proto", (err, root) => {
-            ClientAuthenticationRequest = root.lookupType("discordlink.protocol.auth.ClientAuthenticationRequest");
-            ClientAuthenticationAccepted = root.lookupType("discordlink.protocol.auth.ClientAuthenticationAccepted");
-            ClientAuthenticationDenied = root.lookupType("discordlink.protocol.auth.ClientAuthenticationDenied");
-        });
+    before(async () => {
+        packets = new network.Packets();
+        await packets.load("protocol");
     });
 
     describe('Service Registered', () => {
@@ -67,9 +62,13 @@ describe('Authentication', () => {
 
             client.on('connect', connection => {
                 connection.on('message', function(message) {
+                    receivedPacket = true;
+
                     assert.equal(message.type, 'binary');
-                    let id = message.binaryData.readInt8(0);
+                    let id = message.binaryData.readUInt8(0);
                     assert.equal(id, dprotocol.ID_ClientAuthenticationAccepted);
+
+                    connection.close();
                 });
 
                 connection.on('close', () => {
@@ -84,8 +83,14 @@ describe('Authentication', () => {
                     serviceToken: "TODO"
                 };
 
-                let packet = ClientAuthenticationRequest.create(payload);
-                connection.sendBytes(Buffer.from(ClientAuthenticationRequest.encode(packet).finish()));
+                let packet = packets.ClientAuthenticationRequest.create(payload);
+                let packetData = packets.ClientAuthenticationRequest.encode(packet).finish();
+                let buf = Buffer.alloc(packetData.length + 5);
+                buf.writeUInt8(dprotocol.ID_ClientAuthenticationRequest, 0);
+                buf.writeUInt32LE(packetData.length, 1);
+                buf.fill(packetData, 5);
+
+                connection.sendBytes(buf);
             });
 
             client.connect("ws://localhost:" + testServerConfig.server.port, 'discord-link-protocol')

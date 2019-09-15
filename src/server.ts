@@ -4,12 +4,14 @@ import winston from "winston";
 import http from "http";
 
 import DiscordLinkBot from "./bot";
-import Connection from "./network";
+import Connection, {Packets} from "./network";
 
 // Main Server class which listens for data from bridged services and pushes data to them
 export default class DiscordLinkServer {
     config;
     logger: winston.Logger;
+
+    packetsInstance: Packets;
 
     bot: DiscordLinkBot;
     private httpServer: http.Server;
@@ -18,6 +20,9 @@ export default class DiscordLinkServer {
     constructor(config, logger: winston.Logger, serverOnly:boolean = false) {
         this.config = config;
         this.logger = logger;
+
+        this.packetsInstance = new Packets();
+        this.packetsInstance.load(config.protocolRoot);
 
         this.httpServer = http.createServer(this.httpServerCallback);
         this.server = new websocket.server({ httpServer: this.httpServer, autoAcceptConnections: false});
