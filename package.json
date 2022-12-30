@@ -4,7 +4,7 @@
   "dependencies": {
     "chai": "^4.2.0",
     "discord.js": "^11.5.1",
-    "mocha": "^6.2.0",
+    "mocha": "^10.2.0",
     "protobufjs": "^6.8.8",
     "ts-node": "^8.3.0",
     "typescript": "^3.6.2",
